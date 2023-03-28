@@ -6,7 +6,7 @@ use crate::cea::generate_cea;
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
-use crate::sort_key::compare_incremental;
+use crate::sort_key::{compare_incremental, get_key};
 use crate::Tailoring;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
@@ -57,6 +57,25 @@ impl Collator {
             a_cea: vec![0; 32],
             b_cea: vec![0; 32],
         }
+    }
+
+    /// Get a sort key
+    pub fn create_sort_key<T: AsRef<[u8]> + Eq + Ord + ?Sized>(&mut self, a: &T) -> Vec<u16> {
+        // Validate UTF-8 and make an iterator for u32 code points
+        let mut a_iter = B(a).chars().map(|c| c as u32);
+
+        // Set up Vecs for code points
+        let mut a_chars: Vec<u32> = Vec::new();
+        a_chars.extend(a_iter);
+
+        // Normalize to NFD
+        make_nfd(&mut a_chars);
+
+        // Otherwise we move forward with full collation element arrays
+        let tailoring = self.tailoring;
+        generate_cea(&mut self.a_cea, &mut a_chars, self.shifting, tailoring);
+
+        get_key(&mut self.a_cea, self.shifting)
     }
 
     /// This is the primary method in the library. It accepts as arguments two string references or

@@ -35,6 +35,23 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
     Ordering::Equal
 }
 
+
+pub fn get_key(cea: &[u32], shifting: bool) -> Vec<u16> {
+    let mut key = {
+        if shifting {
+            get_primary_shifting(cea)
+        } else {
+            get_primary(cea)
+        }
+    };
+
+    key.extend(get_secondary(cea));
+    key.extend(get_tertiary(cea));
+    key.extend(get_quaternary(cea));
+    key
+}
+
+
 fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
@@ -61,6 +78,18 @@ fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
         }
     }
 }
+
+
+fn get_primary(cea: &[u32]) -> Vec<u16> {
+    cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0)
+        .collect()
+}
+
+
 
 fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
@@ -91,6 +120,16 @@ fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     }
 }
 
+fn get_primary_shifting(cea: &[u32]) -> Vec<u16> {
+    cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .filter(|w| !variability(**w))
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0)
+        .collect()
+}
+
 fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
@@ -117,6 +156,16 @@ fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
         }
     }
 }
+
+fn get_secondary(cea: &[u32]) -> Vec<u16> {
+    cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| secondary(*w))
+        .filter(|s| *s != 0)
+        .collect()
+}
+
 
 fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
@@ -145,6 +194,16 @@ fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     }
 }
 
+fn get_tertiary(cea: &[u32]) -> Vec<u16> {
+    cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| tertiary(*w))
+        .filter(|t| *t != 0)
+        .collect()
+}
+
+
 fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
@@ -170,4 +229,14 @@ fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
             return None;
         }
     }
+}
+
+
+fn get_quaternary(cea: &[u32]) -> Vec<u16> {
+    cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .filter(|w| variability(**w) || secondary(**w) != 0)
+        .map(|w| primary(*w))
+        .collect()
 }
